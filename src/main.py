@@ -7,6 +7,7 @@ import pyautogui
 import cv2
 
 from PIL import Image
+from PIL import ImageEnhance
 
 PATH_TO_IMG = '/Users/tena/Desktop/cap.png'
 PATH_TO_MODELS = "/usr/local/Cellar/tesseract/5.2.0/share/tessdata"
@@ -39,10 +40,16 @@ def setup():
     return tool, lang
 
 def image2text(tool, lang="jpn", style=3):
+    image = Image.open(PATH_TO_IMG)
+    gray = image.convert('L') # グレースケールに変換
+    cont = ImageEnhance.Contrast(gray).enhance(1.5) # コントラストを強調
+    cont.show()
+
     text = tool.image_to_string(
-        Image.open(PATH_TO_IMG),
+        cont,
         lang=lang,
         builder=pyocr.builders.TextBuilder(style))
+
     print(text)
 
 def ScreenShot(x1, y1, x2, y2):
