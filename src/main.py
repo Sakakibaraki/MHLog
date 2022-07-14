@@ -5,9 +5,9 @@ import pyocr
 import pyocr.builders
 import pyautogui
 import cv2
+import numpy as np
 
-from PIL import Image
-from PIL import ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 
 PATH_TO_IMG = '/Users/tena/Desktop/cap.png'
 PATH_TO_MODELS = "/usr/local/Cellar/tesseract/5.2.0/share/tessdata"
@@ -42,11 +42,23 @@ def setup():
 def image2text(tool, lang="jpn", style=3):
     image = Image.open(PATH_TO_IMG)
     gray = image.convert('L') # グレースケールに変換
-    cont = ImageEnhance.Contrast(gray).enhance(1.5) # コントラストを強調
-    cont.show()
+    cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
 
+    border = 200
+    arr = np.array(cont)
+    for i in range(len(arr)):
+        for j in range(len(arr[i])):
+            arr[i][j] = (arr[i][j] < border) * 255
+            # pix = arr[i][j]
+            # if pix[0] >= border or pix[1] >= border or pix[2] >= border: # 白文字は黒に
+            #     arr[i][j] = [0, 0, 0, 255]
+            # elif pix[0] < border or pix[1] < border or pix[2] < border: # 暗めの色は白に
+            #     arr[i][j] = [255, 255, 255, 255]
+
+    result = Image.fromarray(arr)
+    result.show()
     text = tool.image_to_string(
-        cont,
+        result,
         lang=lang,
         builder=pyocr.builders.TextBuilder(style))
 
@@ -78,4 +90,4 @@ if __name__ == '__main__':
     # 12 = Sparse text with OSD.
     # 13 = Raw line. Treat the image as a single text line,
     #     bypassing hacks that are Tesseract-specific.
-    image2text(tool, style=11)
+    image2text(tool, style=4)
