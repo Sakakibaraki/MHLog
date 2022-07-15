@@ -3,14 +3,14 @@ import os
 
 import pyocr
 import pyocr.builders
-import pyautogui
-import cv2
 import numpy as np
 
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageEnhance, ImageOps, ImageDraw
+
 
 PATH_TO_IMG = '/Users/tena/Desktop/cap.png'
 PATH_TO_MODELS = "/usr/local/Cellar/tesseract/5.2.0/share/tessdata"
+
 
 def setup():
     # Path to a directory of Tesseract-OCR models
@@ -39,24 +39,21 @@ def setup():
 
     return tool, lang
 
-def image2text(tool, lang="jpn", style=3):
-    image = Image.open(PATH_TO_IMG)
+
+def image2text(image, tool, lang="jpn", style=3):
+    border = 200
+
     gray = image.convert('L') # グレースケールに変換
     cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
 
-    border = 200
     arr = np.array(cont)
     for i in range(len(arr)):
         for j in range(len(arr[i])):
-            arr[i][j] = (arr[i][j] < border) * 255
-            # pix = arr[i][j]
-            # if pix[0] >= border or pix[1] >= border or pix[2] >= border: # 白文字は黒に
-            #     arr[i][j] = [0, 0, 0, 255]
-            # elif pix[0] < border or pix[1] < border or pix[2] < border: # 暗めの色は白に
-            #     arr[i][j] = [255, 255, 255, 255]
+            arr[i][j] = (arr[i][j] < border) * 255 # 明度で二値化
 
     result = Image.fromarray(arr)
     result.show()
+
     text = tool.image_to_string(
         result,
         lang=lang,
@@ -64,16 +61,28 @@ def image2text(tool, lang="jpn", style=3):
 
     print(text)
 
-def ScreenShot(x1, y1, x2, y2):
-    sc = pyautogui.screenshot(region=(x1, y1, x2, y2))
-    sc.save('TransActor.jpg')
-    img = cv2.imread('TransActor.jpg')
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    tmp = cv2.resize(gray, (gray.shape[1]*2, gray.shape[0]*2), interpolation=cv2.INTER_LINEAR)
-    cv2.imwrite('TransActor.jpg', tmp)
+
+def splitImage(image: Image.Image, rects):
+    segments = []
+    draw = ImageDraw.Draw(image)
+
+    for rect in rects:
+        segments.append(image.crop(rect))
+        draw.rectangle(rect, outline=(255, 0, 0))
+
+    # image.save("split.png")
+    return segments
+
 
 if __name__ == '__main__':
     tool, _ = setup()
+    image = Image.open(PATH_TO_IMG)
+    rects = [
+        # 左上x, 左上y, 右下x, 右下y
+        (1280, 200, 2000, 1200),# 概要
+        (2000, 200, 2500, 1200),# 詳細
+    ]
+    segments = splitImage(image, rects)
     # styleについて
     # 0 = Orientation and script detection (OSD) only.
     # 1 = Automatic page segmentation with OSD.
@@ -90,4 +99,5 @@ if __name__ == '__main__':
     # 12 = Sparse text with OSD.
     # 13 = Raw line. Treat the image as a single text line,
     #     bypassing hacks that are Tesseract-specific.
-    image2text(tool, style=4)
+    for segment in segments:
+        image2text(image=segment, tool=tool, style=4)
