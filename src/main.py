@@ -84,20 +84,20 @@ if __name__ == '__main__':
     ]
     segments = splitImage(image, rects)
     # styleについて
-    # 0 = Orientation and script detection (OSD) only.
-    # 1 = Automatic page segmentation with OSD.
-    # 2 = Automatic page segmentation, but no OSD, or OCR. (not implemented)
-    # 3 = Fully automatic page segmentation, but no OSD. (Default)
-    # 4 = Assume a single column of text of variable sizes.
-    # 5 = Assume a single uniform block of vertically aligned text.
-    # 6 = Assume a single uniform block of text.
-    # 7 = Treat the image as a single text line.
-    # 8 = Treat the image as a single word.
-    # 9 = Treat the image as a single word in a circle.
-    # 10 = Treat the image as a single character.
-    # 11 = Sparse text. Find as much text as possible in no particular order.
-    # 12 = Sparse text with OSD.
+    # 0 = Orientation and script detection (OSD) only.(不使用)
+    # 1 = Automatic page segmentation with OSD.(離れた部分が削除される)
+    # 2 = Automatic page segmentation, but no OSD, or OCR. (not implemented)(不使用)
+    # 3 = Fully automatic page segmentation, but no OSD. (Default)(離れた部分が削除される)
+    # 4 = Assume a single column of text of variable sizes.(そこそこ使いやすい)
+    # 5 = Assume a single uniform block of vertically aligned text.(縦向きに読まれて変になる)
+    # 6 = Assume a single uniform block of text.(いい感じかもしれない)
+    # 7 = 画像を1行のテキストとして扱います
+    # 8 = 画像を一単語として扱います
+    # 9 = 画像を円の中の一単語として扱います
+    # 10 = 画像を一つの文字として扱います
+    # 11 = Sparse text. Find as much text as possible in no particular order.(離れた部分が削除される; 0がなくなる)
+    # 12 = Sparse text with OSD.(同上)
     # 13 = Raw line. Treat the image as a single text line,
-    #     bypassing hacks that are Tesseract-specific.
+    #     bypassing hacks that are Tesseract-specific.(ダメダメ)
     for segment in segments:
         image2text(image=segment, tool=tool, style=4)
