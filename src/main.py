@@ -7,6 +7,8 @@ import numpy as np
 
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 
+from item import Item
+
 
 PATH_TO_IMG = '/Users/tena/Desktop/cap.png'
 PATH_TO_MODELS = "/usr/local/Cellar/tesseract/5.2.0/share/tessdata"
@@ -52,14 +54,20 @@ def image2text(image, tool, lang="jpn", style=3):
             arr[i][j] = (arr[i][j] < border) * 255 # 明度で二値化
 
     result = Image.fromarray(arr)
-    result.show()
+    # result.show()
 
+    # OCRで画像からテキストを読み出す
     text = tool.image_to_string(
         result,
         lang=lang,
         builder=pyocr.builders.TextBuilder(style))
 
-    print(text)
+    # 改行含めてひとつのstrとして返されるので分割する
+    if type(text) is str:
+        lines = text.split('\n')
+    # print(lines)
+
+    return lines
 
 
 def splitImage(image: Image.Image, rects):
@@ -99,5 +107,13 @@ if __name__ == '__main__':
     # 12 = Sparse text with OSD.(同上)
     # 13 = Raw line. Treat the image as a single text line,
     #     bypassing hacks that are Tesseract-specific.(ダメダメ)
+    texts = []
     for segment in segments:
-        image2text(image=segment, tool=tool, style=4)
+        texts.append(image2text(image=segment, tool=tool, style=6))
+    print(texts)
+
+    # アイテムとして登録
+    item = Item()
+    for line in texts[1]:
+        item.register(line)
+    print(item.defined_value)
