@@ -1,6 +1,6 @@
-'''
+"""
 現状使わないけど残しておきたい関数置き場
-'''
+"""
 
 import pyautogui
 import cv2
@@ -23,7 +23,9 @@ def ScreenShot(x1, y1, x2, y2):
 
 
 def pil2cv(image):
-    ''' PIL型 -> OpenCV型 '''
+    """
+    PIL型 -> OpenCV型
+    """
     new_image = np.array(image, dtype=np.uint8)
     if new_image.ndim == 2:  # モノクロ
         pass
