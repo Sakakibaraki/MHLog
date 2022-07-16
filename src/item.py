@@ -1,3 +1,5 @@
+import unicodedata
+
 class Item:
     def __init__(self, *args):
         """
@@ -36,7 +38,7 @@ class Item:
                 # データ名を含む場合
 
                 # 続く数値を登録する
-                self.defined_value[name] = text[index+len(name):]
+                self.defined_value[name] = Item.__normalize(text[index+len(name):])
 
                 # TODO: 登録済みだった場合の処理
 
@@ -52,7 +54,17 @@ class Item:
             index = text.find(name_mis)
             if index != -1:
                 # 誤検出リストにある場合
-                self.defined_value[name] = text[index+len(name_mis):]
+                self.defined_value[name] = Item.__normalize(text[index+len(name_mis):])
                 return
 
     # private関数
+    @staticmethod
+    def __normalize(text: str):
+        """
+        数字が丸文字として検出されることがある
+        """
+        norm = ''
+        # 一文字ずつ対応する
+        for chara in text:
+            norm += str(unicodedata.normalize('NFKC', chara)) # NOTE: 正直どれくらい直してくれるかわからない
+        return norm

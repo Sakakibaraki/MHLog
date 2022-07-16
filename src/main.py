@@ -110,7 +110,7 @@ if __name__ == '__main__':
     texts = []
     for segment in segments:
         texts.append(image2text(image=segment, tool=tool, style=6))
-    print(texts)
+    # print(texts)
 
     # アイテムとして登録
     item = Item()
