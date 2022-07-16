@@ -11,29 +11,29 @@ from item import Item
 
 
 PATH_TO_IMG = '/Users/tena/Desktop/cap.png'
-PATH_TO_MODELS = "/usr/local/Cellar/tesseract/5.2.0/share/tessdata"
+PATH_TO_MODELS = '/usr/local/Cellar/tesseract/5.2.0/share/tessdata'
 
 
 def setup():
     # Path to a directory of Tesseract-OCR models
     path = PATH_TO_MODELS
-    path_list = os.environ["PATH"].split(os.pathsep)
+    path_list = os.environ['PATH'].split(os.pathsep)
     if path not in path_list:
-        os.environ["PATH"] += os.pathsep + path
+        os.environ['PATH'] += os.pathsep + path
 
     tools = pyocr.get_available_tools()
     if len(tools) == 0:
-        print("No OCR tool found")
+        print('No OCR tool found')
         sys.exit(1)
     # The tools are returned in the recommended order of usage
     tool = tools[0]
     # Ex: Will use tool 'libtesseract'
-    print("Will use tool '%s'" % (tool.get_name()))
+    print('Will use tool "%s"' % (tool.get_name()))
 
     langs = tool.get_available_languages()
-    print("Available languages: %s" % ", ".join(langs))
+    print('Available languages: %s' % ', '.join(langs))
     lang = langs[0]
-    print("Will use lang '%s'" % (lang))
+    print('Will use lang "%s"' % (lang))
     # Ex: Will use lang 'fra'
     # Note that languages are NOT sorted in any way. Please refer
     # to the system locale settings for the default language
@@ -42,7 +42,7 @@ def setup():
     return tool, lang
 
 
-def image2text(image, tool, lang="jpn", style=3):
+def image2text(image, tool, lang='jpn', style=3):
     border = 200
 
     gray = image.convert('L') # グレースケールに変換
