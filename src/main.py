@@ -75,7 +75,7 @@ def image2text(image: Image.Image, tool, lang='jpn', style=3):
         normal = ''
         for chara in line:
             # 一文字ずつ対応する
-            if chara is ' ':
+            if chara == ' ':
                 continue
             normal += str(unicodedata.normalize('NFKC', chara)) # NOTE: 正直どれくらい直してくれるかわからない
         normals.append(normal)
@@ -83,16 +83,18 @@ def image2text(image: Image.Image, tool, lang='jpn', style=3):
     return normals
 
 
-def splitImage(image: Image.Image, rect):
-    draw = ImageDraw.Draw(image)
+def splitImage(image: Image.Image, rect: tuple[int, int, int, int]):
+    # draw = ImageDraw.Draw(image)
 
-    r = 1
-    # for rect in rects:
-    crop = image.crop(rect)
-    segment = crop.resize((round(crop.width*r), round(crop.height*r)))
+    segment = image.crop(rect)
 
+    # r = 1
+    # segment = crop.resize((round(segment.width*r), round(segment.height*r)))
+
+    # 切り抜き範囲
     # draw.rectangle(rect, outline=(255, 0, 0))
 
+    # 横線
     # start = (0, 100)
     # end = (2560, 100)
     # for i in range(14):
@@ -101,6 +103,7 @@ def splitImage(image: Image.Image, rect):
     #     start = (start[0], start[1] + 100)
     #     end = (end[0], end[1] + 100)
 
+    # 縦線
     # start = (100, 0)
     # end = (100, 1440)
     # for i in range(25):
@@ -109,29 +112,12 @@ def splitImage(image: Image.Image, rect):
     #     start = (start[0] + 100, start[1])
     #     end = (end[0] + 100, end[1])
 
-    image.save("split.png")
+    # image.save("split.png")
     return segment
 
 
 if __name__ == '__main__':
     tool, _ = setup()
-    size = (2560, 1440)
-    # styleについて
-    # 0 = Orientation and script detection (OSD) only.(不使用)
-    # 1 = Automatic page segmentation with OSD.(離れた部分が削除される)
-    # 2 = Automatic page segmentation, but no OSD, or OCR. (not implemented)(不使用)
-    # 3 = Fully automatic page segmentation, but no OSD. (Default)(離れた部分が削除される)
-    # 4 = Assume a single column of text of variable sizes.(そこそこ使いやすい)
-    # 5 = Assume a single uniform block of vertically aligned text.(縦向きに読まれて変になる)
-    # 6 = Assume a single uniform block of text.(いい感じかもしれない)
-    # 7 = 画像を1行のテキストとして扱います
-    # 8 = 画像を一単語として扱います
-    # 9 = 画像を円の中の一単語として扱います
-    # 10 = 画像を一つの文字として扱います
-    # 11 = Sparse text. Find as much text as possible in no particular order.(離れた部分が削除される; 0がなくなる)
-    # 12 = Sparse text with OSD.(同上)
-    # 13 = Raw line. Treat the image as a single text line,
-    #     bypassing hacks that are Tesseract-specific.(ダメダメ)
 
     items = Segment('Item')
     items.append(Segment('防具', ((0, 0), (2560, 1440))))
@@ -170,14 +156,31 @@ if __name__ == '__main__':
 
             # テキストの取得
             # 画像は本当はページ番号で判別するが一旦強制
+            #
+            # styleについて
+            # 0 = Orientation and script detection (OSD) only.(不使用)
+            # 1 = Automatic page segmentation with OSD.(離れた部分が削除される)
+            # 2 = Automatic page segmentation, but no OSD, or OCR. (not implemented)(不使用)
+            # 3 = Fully automatic page segmentation, but no OSD. (Default)(離れた部分が削除される)
+            # 4 = Assume a single column of text of variable sizes.(そこそこ使いやすい)
+            # 5 = Assume a single uniform block of vertically aligned text.(縦向きに読まれて変になる)
+            # 6 = Assume a single uniform block of text.(いい感じかもしれない)
+            # 7 = 画像を1行のテキストとして扱います
+            # 8 = 画像を一単語として扱います
+            # 9 = 画像を円の中の一単語として扱います
+            # 10 = 画像を一つの文字として扱います
+            # 11 = Sparse text. Find as much text as possible in no particular order.(離れた部分が削除される; 0がなくなる)
+            # 12 = Sparse text with OSD.(同上)
+            # 13 = Raw line. Treat the image as a single text line,
+            #     bypassing hacks that are Tesseract-specific.(ダメダメ)
             for elem in page1.values():
                 capture = Image.open(PATH_TO_IMG_1)
                 segment = splitImage(capture, elem.pos)
-                elem.value.append(image2text(image=segment, tool=tool, style=6))
-                print(elem.name, elem.value)
+                elem.value = image2text(image=segment, tool=tool, style=6)
+            print(page1)
 
             for elem in page2.values():
                 capture = Image.open(PATH_TO_IMG_2)
                 segment = splitImage(capture, elem.pos)
-                elem.value.append(image2text(image=segment, tool=tool, style=6))
-                print(elem.name, elem.value)
+                elem.value = image2text(image=segment, tool=tool, style=6)
+            print(page2)

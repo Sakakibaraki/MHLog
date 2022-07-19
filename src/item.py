@@ -49,3 +49,9 @@ class Segment(Element, UserDict[str, Element]):
         elem.parent = self
         if elem.pos is None:
             elem.pos = self.pos
+
+    def __str__(self):
+        dictionary = {}
+        for elem in self.data.values():
+            dictionary[elem.name] = elem.value
+        return dictionary.__str__()
