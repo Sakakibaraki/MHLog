@@ -1,70 +1,51 @@
-import unicodedata
+from collections import UserDict
 
-class Item:
-    def __init__(self, *args):
+
+class Element:
+    """
+    具体的なプロパティに対応する
+    """
+
+    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None):
         """
-        コンストラクタ
+        @input name 自分の名前
+        @input pos 枠を取った時の(絶対)座標(左上xy, 右下xy)
         """
-        # publicメンバ
-        self.name = 'name'
-        self.defined_value = {}
-        # privateメンバ
-        self.__misdefined_values = {
-            'LV': self.DATA_NAME[1],
-            '防御カ': self.DATA_NAME[2],
-        }
 
-    # クラス定数
-    DATA_NAME = [
-        'RARE',
-        'Lv',
-        '防御力',
-        'スロット',
-        '火耐性',
-        '水耐性',
-        '雷耐性',
-        '龍耐性',
-    ]
+        self.name = name
+        self.pos = pos
+        self.value: list[str] = []
 
-    # public関数
-    def register(self, text: str):
-        # 空白を除去する
-        text = text.replace(' ', '')
-
-        # データ名のいずれかを含むか探索する
-        for name in self.DATA_NAME:
-            index = text.find(name)
-            if index != -1:
-                # データ名を含む場合
-
-                # 続く数値を登録する
-                self.defined_value[name] = Item.__normalize(text[index+len(name):])
-
-                # TODO: 登録済みだった場合の処理
-
-                # TODO: 数値が続かない場合、特殊な項目については履歴を残す
-                # self.defined_value[value] = self.defined_value[name]
-
-                # TODO: 他のnameも含まれている場合の処理
-                return
-
-        # データ名を含まない場合
-        # 誤検出リストにあるか調べる
-        for name_mis, name in self.__misdefined_values.items():
-            index = text.find(name_mis)
-            if index != -1:
-                # 誤検出リストにある場合
-                self.defined_value[name] = Item.__normalize(text[index+len(name_mis):])
-                return
-
-    # private関数
-    @staticmethod
-    def __normalize(text: str):
+        self.parent: Segment = None
         """
-        数字が丸文字として検出されることがある
+        Elementクラスのparentは自身がSegmentに追加された時に決定される
+        (Elementには必ず親がいる)
         """
-        norm = ''
-        # 一文字ずつ対応する
-        for chara in text:
-            norm += str(unicodedata.normalize('NFKC', chara)) # NOTE: 正直どれくらい直してくれるかわからない
-        return norm
+
+
+class Segment(Element, UserDict[str, Element]):
+    """
+    グループや一つのアイテムの本体などに対応する
+    """
+
+    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None, children: list[Element] = None):
+        super(Segment, self).__init__(name, pos)
+
+        self.data = {}
+        if children is not None:
+            for elem in children:
+                self.data[elem.name] = elem
+                elem.parent = self
+
+    def update(self, **kwargs: Element):
+        self.update(kwargs) # これで追加できている？新しいキーの場合はその処理も書いた方がいい？
+        # NOTE: とりあえずの実装。なんかいちいちparent設定してそう
+        for elem in kwargs.values():
+            if elem.parent is not self:
+                elem.parent = self
+
+    def append(self, elem: Element):
+        self.data[elem.name] = elem
+        elem.parent = self
+        if elem.pos is None:
+            elem.pos = self.pos
