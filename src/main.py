@@ -8,6 +8,9 @@ import numpy as np
 
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 
+from multiprocessing import Pool
+import multiprocessing as multi
+
 from item import Element, Segment
 
 
@@ -16,36 +19,40 @@ PATH_TO_IMG_2 = '/Users/tena/Desktop/capture2.png'
 PATH_TO_MODELS = '/usr/local/Cellar/tesseract/5.2.0/share/tessdata'
 
 
-def setup():
-    # Path to a directory of Tesseract-OCR models
-    path = PATH_TO_MODELS
-    path_list = os.environ['PATH'].split(os.pathsep)
-    if path not in path_list:
-        os.environ['PATH'] += os.pathsep + path
-
+def available_tools():
     tools = pyocr.get_available_tools()
     if len(tools) == 0:
         print('No OCR tool found')
         sys.exit(1)
+    print('Available tool:')
+    for tool in tools:
+        print(tool.get_name())
     # The tools are returned in the recommended order of usage
     tool = tools[0]
     # Ex: Will use tool 'libtesseract'
-    print('Will use tool "%s"' % (tool.get_name()))
+    # print('Will use tool "%s"' % (tool.get_name()))
 
     langs = tool.get_available_languages()
     print('Available languages: %s' % ', '.join(langs))
-    lang = langs[0]
-    print('Will use lang "%s"' % (lang))
+    # lang = langs[0]
+    # print('Will use lang "%s"' % (lang))
     # Ex: Will use lang 'fra'
     # Note that languages are NOT sorted in any way. Please refer
     # to the system locale settings for the default language
     # to use.
 
-    return tool, lang
+
+def recommended_tool():
+    tools = pyocr.get_available_tools()
+    if len(tools) == 0:
+        print('No OCR tool found')
+        sys.exit(1)
+    return tools[0]
 
 
-def image2text(image: Image.Image, tool, lang='jpn', style=3):
-    border = 200
+def image2text(image: Image.Image):
+    # OCR初期化
+    tool = recommended_tool()
 
     gray = image.convert('L') # グレースケールに変換
     cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
@@ -53,7 +60,7 @@ def image2text(image: Image.Image, tool, lang='jpn', style=3):
     arr = np.array(cont)
     for i in range(len(arr)):
         for j in range(len(arr[i])):
-            arr[i][j] = (arr[i][j] < border) * 255 # 明度で二値化
+            arr[i][j] = (arr[i][j] < 200) * 255 # 明度で二値化
 
     result = Image.fromarray(arr)
     # result.show()
@@ -61,8 +68,8 @@ def image2text(image: Image.Image, tool, lang='jpn', style=3):
     # OCRで画像からテキストを読み出す
     text = tool.image_to_string(
         result,
-        lang=lang,
-        builder=pyocr.builders.TextBuilder(style))
+        lang='jpn',
+        builder=pyocr.builders.TextBuilder(tesseract_layout=6))
 
     # 改行含めてひとつのstrとして返されるので分割する
     if type(text) is str:
@@ -117,11 +124,22 @@ def splitImage(image: Image.Image, rect: tuple[int, int, int, int]):
 
 
 if __name__ == '__main__':
-    tool, _ = setup()
 
+    # スレッド数
+    njobs = 1
+    if multi.cpu_count() > 2:
+        njobs = multi.cpu_count() - 1
+
+    # Path to a directory of Tesseract-OCR models
+    path = PATH_TO_MODELS
+    path_list = os.environ['PATH'].split(os.pathsep)
+    if path not in path_list:
+        os.environ['PATH'] += os.pathsep + path
+    available_tools()
+
+    # 画面構成の定義(TODO: GUI実装)
     items = Segment('Item')
     items.append(Segment('防具', ((0, 0), (2560, 1440))))
-
     armors = items['防具']
     if type(armors) is Segment:
 
@@ -173,14 +191,24 @@ if __name__ == '__main__':
             # 12 = Sparse text with OSD.(同上)
             # 13 = Raw line. Treat the image as a single text line,
             #     bypassing hacks that are Tesseract-specific.(ダメダメ)
-            for elem in page1.values():
-                capture = Image.open(PATH_TO_IMG_1)
-                segment = splitImage(capture, elem.pos)
-                elem.value = image2text(image=segment, tool=tool, style=6)
-            print(page1)
 
+            segments = []
+            capture1 = Image.open(PATH_TO_IMG_1)
+            capture2 = Image.open(PATH_TO_IMG_2)
+            for elem in page1.values():
+                segments.append(splitImage(capture1, elem.pos))
             for elem in page2.values():
-                capture = Image.open(PATH_TO_IMG_2)
-                segment = splitImage(capture, elem.pos)
-                elem.value = image2text(image=segment, tool=tool, style=6)
+                segments.append(splitImage(capture2, elem.pos))
+
+            # 並列化
+            process = Pool(njobs)
+            texts = process.map(image2text, segments)
+            process.close()
+
+            for i, elem in enumerate(page1.values()):
+                elem.value = texts[i]
+            for i, elem in enumerate(page2.values()):
+                elem.value = texts[i]
+
+            print(page1)
             print(page2)
