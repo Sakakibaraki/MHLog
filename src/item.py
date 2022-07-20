@@ -6,7 +6,7 @@ class Element:
     具体的なプロパティに対応する
     """
 
-    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None):
+    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None, style = 6):
         """
         @input name 自分の名前
         @input pos 枠を取った時の(絶対)座標(左上xy, 右下xy)
@@ -14,6 +14,7 @@ class Element:
 
         self.name = name
         self.pos = pos
+        self.style = style
         self.value: list[str] = []
 
         self.parent: Segment = None
@@ -28,8 +29,8 @@ class Segment(Element, UserDict[str, Element]):
     グループや一つのアイテムの本体などに対応する
     """
 
-    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None, children: list[Element] = None):
-        super(Segment, self).__init__(name, pos)
+    def __init__(self, name: str, pos: tuple[tuple[float, float], tuple[float, float]] = None, children: list[Element] = None, style = 6):
+        super(Segment, self).__init__(name, pos, style)
 
         self.data = {}
         if children is not None:
