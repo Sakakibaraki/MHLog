@@ -105,9 +105,6 @@ def split_image(image: Image.Image, rect: tuple[int, int, int, int]):
     #     start = (start[0] + 100, start[1])
     #     end = (end[0] + 100, end[1])
 
-    # image.save("split.png")
-    # image.show()
-
     gray = segment.convert('L') # グレースケールに変換
     cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
 
@@ -152,8 +149,8 @@ if __name__ == '__main__':
             if type(page1) is Segment:
                 page1.append(Element('名称', (2100, 300, 2500, 350), Extension.LBL))
                 page1.append(Element('RARE', (2475, 350, 2500, 400), Extension.VAL))
-                page1.append(Element('Lv', (2400, 400, 2500, 450), Extension.VAL))
-                page1.append(Element('防御力', (2400, 450, 2500, 500), Extension.VAL))
+                page1.append(Element('Lv', (2470, 400, 2500, 450), Extension.VAL))
+                page1.append(Element('防御力', (2440, 450, 2500, 500), Extension.VAL))
                 page1.append(Element('スロット1', (2330, 495, 2390, 555), Extension.IMG))
                 page1.append(Element('スロット2', (2390, 495, 2447, 555), Extension.IMG))
                 page1.append(Element('スロット3', (2448, 495, 2500, 555), Extension.IMG))
@@ -168,11 +165,11 @@ if __name__ == '__main__':
             if type(page2) is Segment:
                 page2.append(Element('説明', (2040, 400, 2500, 510), Extension.TXT))
                 page2.append(Element('スキル1', (2070, 620, 2300, 670), Extension.LBL))
-                page2.append(Element('スキル1Lv', (2450, 650, 2500, 720), Extension.VAL))
+                page2.append(Element('スキル1Lv', (2470, 670, 2500, 720), Extension.VAL))
                 page2.append(Element('スキル2', (2070, 720, 2300, 770), Extension.LBL))
-                page2.append(Element('スキル2Lv', (2450, 750, 2500, 820), Extension.VAL))
+                page2.append(Element('スキル2Lv', (2470, 770, 2500, 830), Extension.VAL))
                 page2.append(Element('スキル3', (2070, 820, 2300, 870), Extension.LBL))
-                page2.append(Element('スキル3Lv', (2450, 850, 2500, 920), Extension.VAL))
+                page2.append(Element('スキル3Lv', (2470, 870, 2500, 920), Extension.VAL))
 
             # テキストの取得
             # 画像は本当はページ番号で判別するが一旦強制
@@ -195,6 +192,8 @@ if __name__ == '__main__':
             for i, elem in enumerate(page2.values()):
                 elem.value = texts[len(page1)+i]
 
+            # capture1.save("split1.png")
+            # capture2.save("split2.png")
             print(page1)
             print(page2)
 
