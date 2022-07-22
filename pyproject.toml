@@ -9,6 +9,7 @@ python = ">=3.8,<3.11"
 pyocr = "^0.8.3"
 opencv-python = "^4.6.0"
 PyAutoGUI = "^0.9.53"
+tesserocr = "^2.5.2"
 
 [tool.poetry.dev-dependencies]
 
