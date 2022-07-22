@@ -1,8 +1,12 @@
+from json import tool
 import sys
 import os
+import time
+from tracemalloc import start
 
 import pyocr
 import pyocr.builders
+import tesserocr
 import unicodedata
 import numpy as np
 
@@ -11,12 +15,18 @@ from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 from multiprocessing import Pool
 import multiprocessing as multi
 
-from item import Element, Segment
+from item import Extension, Element, Segment, normalize_text
 
 
 PATH_TO_IMG_1 = '/Users/tena/Desktop/cap.png'
 PATH_TO_IMG_2 = '/Users/tena/Desktop/capture2.png'
 PATH_TO_MODELS = '/usr/local/Cellar/tesseract/5.2.0/share/tessdata'
+
+
+def print_time(start: float, message: str):
+    elapsed_time = time.time() - start
+    # print(message + ": {0}".format(elapsed_time) + "[sec]")
+    print(message + ": {0}".format(elapsed_time))
 
 
 def available_tools():
@@ -30,7 +40,7 @@ def available_tools():
     # The tools are returned in the recommended order of usage
     tool = tools[0]
     # Ex: Will use tool 'libtesseract'
-    # print('Will use tool "%s"' % (tool.get_name()))
+    print('Will use tool "%s"' % (tool.get_name()))
 
     langs = tool.get_available_languages()
     print('Available languages: %s' % ', '.join(langs))
@@ -50,47 +60,23 @@ def recommended_tool():
     return tools[0]
 
 
-def image2text(image: Image.Image):
-    # OCR初期化
+def image_to_string(inputs: tuple[Image.Image, Element]):
     tool = recommended_tool()
+    image = inputs[0]
+    elem = inputs[1]
+    lang, builder = Element.EXTENSION_PROP[elem.extension]
 
-    gray = image.convert('L') # グレースケールに変換
-    cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
+    start = time.time()
+    text = tool.image_to_string(image, lang, builder)
+    print_time(start, elem.extension.name)
 
-    arr = np.array(cont)
-    for i in range(len(arr)):
-        for j in range(len(arr[i])):
-            arr[i][j] = (arr[i][j] < 200) * 255 # 明度で二値化
-
-    result = Image.fromarray(arr)
-    # result.show()
-
-    # OCRで画像からテキストを読み出す
-    text = tool.image_to_string(
-        result,
-        lang='jpn',
-        builder=pyocr.builders.TextBuilder(tesseract_layout=6))
-
-    # 改行含めてひとつのstrとして返されるので分割する
-    if type(text) is str:
-        lines = text.split('\n')
-    # print(lines)
-
-    normals = []
-    for line in lines:
-        # 数字が丸文字として検出されることがある
-        normal = ''
-        for chara in line:
-            # 一文字ずつ対応する
-            if chara == ' ':
-                continue
-            normal += str(unicodedata.normalize('NFKC', chara)) # NOTE: 正直どれくらい直してくれるかわからない
-        normals.append(normal)
-
-    return normals
+    text = normalize_text(text, elem.extension)
+    # if elem.extension == Extension.IMG:
+    #     image.show()
+    return text
 
 
-def splitImage(image: Image.Image, rect: tuple[int, int, int, int]):
+def split_image(image: Image.Image, rect: tuple[int, int, int, int]):
     # draw = ImageDraw.Draw(image)
 
     segment = image.crop(rect)
@@ -120,10 +106,24 @@ def splitImage(image: Image.Image, rect: tuple[int, int, int, int]):
     #     end = (end[0] + 100, end[1])
 
     # image.save("split.png")
+    # image.show()
+
+    gray = segment.convert('L') # グレースケールに変換
+    cont = ImageEnhance.Contrast(gray).enhance(3) # コントラストを強調
+
+    arr = np.array(cont)
+    for i in range(len(arr)):
+        for j in range(len(arr[i])):
+            arr[i][j] = (arr[i][j] < 200) * 255 # 明度で二値化
+
+    segment = Image.fromarray(arr)
+    # segment.show()
+
     return segment
 
 
 if __name__ == '__main__':
+    start = time.time()
 
     # スレッド数
     njobs = 1
@@ -150,65 +150,52 @@ if __name__ == '__main__':
             details.append(Segment('1'))
             page1 = details['1']
             if type(page1) is Segment:
-                page1.append(Element('名称', (2100, 280, 2500, 360)))
-                page1.append(Element('RARE', (2470, 350, 2500, 400)))
-                page1.append(Element('Lv', (2400, 400, 2500, 450)))
-                page1.append(Element('防御力', (2400, 450, 2500, 500)))
-                page1.append(Element('スロット', (2300, 495, 2500, 555)))
-                page1.append(Element('火', (2400, 550, 2500, 600)))
-                page1.append(Element('水', (2400, 600, 2500, 650)))
-                page1.append(Element('雷', (2400, 650, 2500, 700)))
-                page1.append(Element('氷', (2400, 700, 2500, 750)))
-                page1.append(Element('龍', (2400, 750, 2500, 800)))
+                page1.append(Element('名称', (2100, 300, 2500, 350), Extension.LBL))
+                page1.append(Element('RARE', (2475, 350, 2500, 400), Extension.VAL))
+                page1.append(Element('Lv', (2400, 400, 2500, 450), Extension.VAL))
+                page1.append(Element('防御力', (2400, 450, 2500, 500), Extension.VAL))
+                page1.append(Element('スロット1', (2330, 495, 2390, 555), Extension.IMG))
+                page1.append(Element('スロット2', (2390, 495, 2447, 555), Extension.IMG))
+                page1.append(Element('スロット3', (2448, 495, 2500, 555), Extension.IMG))
+                page1.append(Element('火', (2450, 550, 2500, 600), Extension.VAL))
+                page1.append(Element('水', (2450, 600, 2500, 650), Extension.VAL))
+                page1.append(Element('雷', (2450, 650, 2500, 700), Extension.VAL))
+                page1.append(Element('氷', (2450, 700, 2500, 750), Extension.VAL))
+                page1.append(Element('龍', (2450, 750, 2500, 800), Extension.VAL))
 
             details.append(Segment('2'))
             page2 = details['2']
             if type(page2) is Segment:
-                page2.append(Element('説明', (2040, 400, 2500, 510)))
-                page2.append(Element('スキル1', (2070, 610, 2400, 670)))
-                page2.append(Element('スキル1Lv', (2450, 650, 2500, 720)))
-                page2.append(Element('スキル2', (2070, 710, 2400, 770)))
-                page2.append(Element('スキル2Lv', (2450, 750, 2500, 820)))
-                page2.append(Element('スキル3', (2070, 810, 2400, 870)))
-                page2.append(Element('スキル3Lv', (2450, 850, 2500, 920)))
+                page2.append(Element('説明', (2040, 400, 2500, 510), Extension.TXT))
+                page2.append(Element('スキル1', (2070, 620, 2300, 670), Extension.LBL))
+                page2.append(Element('スキル1Lv', (2450, 650, 2500, 720), Extension.VAL))
+                page2.append(Element('スキル2', (2070, 720, 2300, 770), Extension.LBL))
+                page2.append(Element('スキル2Lv', (2450, 750, 2500, 820), Extension.VAL))
+                page2.append(Element('スキル3', (2070, 820, 2300, 870), Extension.LBL))
+                page2.append(Element('スキル3Lv', (2450, 850, 2500, 920), Extension.VAL))
 
             # テキストの取得
             # 画像は本当はページ番号で判別するが一旦強制
-            #
-            # styleについて
-            # 0 = Orientation and script detection (OSD) only.(不使用)
-            # 1 = Automatic page segmentation with OSD.(離れた部分が削除される)
-            # 2 = Automatic page segmentation, but no OSD, or OCR. (not implemented)(不使用)
-            # 3 = Fully automatic page segmentation, but no OSD. (Default)(離れた部分が削除される)
-            # 4 = Assume a single column of text of variable sizes.(そこそこ使いやすい)
-            # 5 = Assume a single uniform block of vertically aligned text.(縦向きに読まれて変になる)
-            # 6 = Assume a single uniform block of text.(いい感じかもしれない)
-            # 7 = 画像を1行のテキストとして扱います
-            # 8 = 画像を一単語として扱います
-            # 9 = 画像を円の中の一単語として扱います
-            # 10 = 画像を一つの文字として扱います
-            # 11 = Sparse text. Find as much text as possible in no particular order.(離れた部分が削除される; 0がなくなる)
-            # 12 = Sparse text with OSD.(同上)
-            # 13 = Raw line. Treat the image as a single text line,
-            #     bypassing hacks that are Tesseract-specific.(ダメダメ)
-
-            segments = []
+            segments: list[tuple[Image.Image, Element]] = []
             capture1 = Image.open(PATH_TO_IMG_1)
             capture2 = Image.open(PATH_TO_IMG_2)
             for elem in page1.values():
-                segments.append(splitImage(capture1, elem.pos))
+                segments.append((split_image(capture1, elem.pos), elem))
             for elem in page2.values():
-                segments.append(splitImage(capture2, elem.pos))
+                segments.append((split_image(capture2, elem.pos), elem))
+            print_time(start, 'セグメンテーション')
 
             # 並列化
             process = Pool(njobs)
-            texts = process.map(image2text, segments)
+            texts = process.map(image_to_string, segments)
             process.close()
 
             for i, elem in enumerate(page1.values()):
                 elem.value = texts[i]
             for i, elem in enumerate(page2.values()):
-                elem.value = texts[i]
+                elem.value = texts[len(page1)+i]
 
             print(page1)
             print(page2)
+
+    print_time(start, '実行時間')

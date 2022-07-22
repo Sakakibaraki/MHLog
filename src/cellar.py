@@ -2,7 +2,6 @@
 現状使わないけど残しておきたい関数置き場
 """
 from abc import abstractmethod
-from enum import Enum, auto
 
 import pyautogui
 import cv2
@@ -90,17 +89,3 @@ def findRect(path_to_img, paint = False):
 
     # cv2.imshow('edge', lines)
     cv2.imwrite('edge.png', lines)
-
-
-
-
-class Extension(Enum):
-    """
-    Element型の拡張子
-    """
-    # Element
-    TXT = auto()
-    IMG = auto()
-
-    # Segment
-    SEG = auto()
