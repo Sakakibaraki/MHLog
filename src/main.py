@@ -1,20 +1,23 @@
-from json import tool
+# 標準ライブラリ
 import sys
 import os
 import time
-from tracemalloc import start
 
+# ocr関連
 import pyocr
 import pyocr.builders
 import tesserocr
 import unicodedata
 import numpy as np
 
+# pillow
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 
+# 並列化
 from multiprocessing import Pool
 import multiprocessing as multi
 
+# 自作クラスなど
 from item import Extension, Element, Segment, normalize_text
 
 
@@ -126,6 +129,7 @@ if __name__ == '__main__':
     njobs = 1
     if multi.cpu_count() > 2:
         njobs = multi.cpu_count() - 1
+    print(njobs, "core will be used.")
 
     # Path to a directory of Tesseract-OCR models
     path = PATH_TO_MODELS
@@ -163,13 +167,15 @@ if __name__ == '__main__':
             details.append(Segment('2'))
             page2 = details['2']
             if type(page2) is Segment:
-                page2.append(Element('説明', (2040, 400, 2500, 510), Extension.TXT))
+                # page2.append(Element('説明', (2040, 400, 2500, 510), Extension.TXT))
                 page2.append(Element('スキル1', (2070, 620, 2300, 670), Extension.LBL))
                 page2.append(Element('スキル1Lv', (2470, 670, 2500, 720), Extension.VAL))
                 page2.append(Element('スキル2', (2070, 720, 2300, 770), Extension.LBL))
                 page2.append(Element('スキル2Lv', (2470, 770, 2500, 830), Extension.VAL))
                 page2.append(Element('スキル3', (2070, 820, 2300, 870), Extension.LBL))
                 page2.append(Element('スキル3Lv', (2470, 870, 2500, 920), Extension.VAL))
+                page2.append(Element('スキル4', (2070, 920, 2300, 970), Extension.LBL))
+                page2.append(Element('スキル4Lv', (2470, 970, 2500, 1020), Extension.VAL))
 
             # テキストの取得
             # 画像は本当はページ番号で判別するが一旦強制
